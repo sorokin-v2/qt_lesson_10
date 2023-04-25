@@ -28,6 +28,7 @@ private slots:
     void DisplayConnectStatus(uint16_t status);
     void DisplayError(uint16_t error);
     void DisplaySuccess(uint16_t typeMess);
+    void DisplayFreeServerMem(uint8_t status);
 
 
     void on_cb_request_currentIndexChanged(int index);

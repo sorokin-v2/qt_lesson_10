@@ -39,7 +39,8 @@ signals:
     void sig_Error(uint16_t);
     void sig_connectStatus(uint16_t);
     void sig_Disconnected( void );
-    void sig_Success(uint16_t);
+    void sig_Success(uint8_t);
+    void sig_FreeServerMem(uint8_t);
 
 };
 

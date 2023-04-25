@@ -91,7 +91,10 @@ void TCPclient::ConnectToHost(QHostAddress host, uint16_t port)
     if(socket->state() != QTcpSocket::ConnectedState &&
         socket->state() != QTcpSocket::ConnectingState){
         socket->connectToHost(host, port);
-        emit sig_connectStatus(socket->state());
+        emit sig_connectStatus(socket->state());    //Сигнал выбрасывается СРАЗУ НЕЗАВИСИМО ОТ РЕЗУЛЬТАТА ПОДКЛЮЧЕНИЯ!!!
+                                                    //Если запустить клиента при не запущенном сервере, нажать кнопку "Подключиться",
+                                                    //то в клиенте СРАЗУ отображается состояние "Подключено",
+                                                    //затем по после таймаута вывалится сообщение об ошибке подключения к серверу
     }
 }
 /*
@@ -184,6 +187,9 @@ void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
         break;
     }
     case GET_SIZE:{
+        uint32_t freeSize;
+        stream >> freeSize;
+        emit sig_sendFreeSize(freeSize);
         break;
     }
     case GET_STAT:{
@@ -193,9 +199,15 @@ void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
         break;
     }
     case SET_DATA:{
+        QString string;
+        stream >> string;
+        emit sig_SendReplyForSetData(string);
         break;
     }
     case CLEAR_DATA:{
+        ServiceHeader header;
+        stream >> header;
+        emit sig_FreeServerMem(header.status);
         break;
     }
         default:

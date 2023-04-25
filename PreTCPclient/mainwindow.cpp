@@ -31,8 +31,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     });
 
-
-
  /*
   * Соединяем сигналы со слотами
  */
@@ -40,8 +38,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect (client, &TCPclient::sig_connectStatus, this, &MainWindow::DisplayConnectStatus);
     connect (client, &TCPclient::sig_sendTime, this, &MainWindow::DisplayTime);
     connect (client, &TCPclient::sig_sendStat, this, &MainWindow::DisplayStat);
-
-
+    connect (client, &TCPclient::sig_sendFreeSize, this, &MainWindow::DisplayFreeSpace);
+    connect (client, &TCPclient::sig_Error, this, &MainWindow::DisplayError);
+    connect (client, &TCPclient::sig_FreeServerMem, this, &MainWindow::DisplayFreeServerMem);
+    connect (client, &TCPclient::sig_SendReplyForSetData, this, &MainWindow::SetDataReply);
 }
 
 MainWindow::~MainWindow()
@@ -54,16 +54,21 @@ MainWindow::~MainWindow()
  */
 void MainWindow::DisplayTime(QDateTime time)
 {
-    ui->tb_result->append("Текущее время" + time.toString(Qt::TextDate));
+    ui->tb_result->append("Текущая время и дата на сервере " + time.toString(Qt::TextDate));
 }
 void MainWindow::DisplayFreeSpace(uint32_t freeSpace)
 {
-
+    ui->tb_result->append("Размер свободного места: " + QString::number(freeSpace) + " байт.");
 }
 void MainWindow::SetDataReply(QString replyString)
 {
-
+    ui->tb_result->append("Строка '" + replyString + "' была получена сервером");
 }
+void MainWindow::DisplayFreeServerMem(uint8_t status)
+{
+    ui->tb_result->append("Статус выполнения операции освобождения памяти на сервере: " + QString::number(status));
+}
+
 void MainWindow::DisplayStat(StatServer stat)
 {
     ui->tb_result->append("Текущая статистика:");
@@ -72,7 +77,7 @@ void MainWindow::DisplayStat(StatServer stat)
     ui->tb_result->append("Принто пакетов: " + QString::number(stat.revPck));
     ui->tb_result->append("Передано пакетов: " + QString::number(stat.sendPck));
     ui->tb_result->append("Время работы сервера секунд: " + QString::number(stat.workTime));
-    ui->tb_result->append("Время работы сервера секунд: " + QString::number(stat.clients));
+    ui->tb_result->append("Количество подключенных клиентов: " + QString::number(stat.clients));
 }
 void MainWindow::DisplayError(uint16_t error)
 {
@@ -170,36 +175,54 @@ void MainWindow::on_pb_request_clicked()
        //Получить время
         case 0:{
             header.idData = Messages::GET_TIME;
-            header.len = sizeof(header);
+            header.len = 0;
+            client->SendRequest(header);
             break;
         }
 
        //Получить свободное место
         case 1:{
-            break;
+           header.idData = Messages::GET_SIZE;
+           header.len = 0;
+           client->SendRequest(header);
+           break;
         }
        //Получить статистику
         case 2:{
-            header.idData = Messages::GET_TIME;
-            header.len = sizeof(header);
-        break;
+            header.idData = Messages::GET_STAT;
+            header.len = 0;
+            client->SendRequest(header);
+            break;
         }
 
        //Отправить данные
         case 3:{
+            if(!ui->le_data->text().isEmpty()){
+                header.idData = Messages::SET_DATA;
+                QByteArray bytes = ui->le_data->text().toUtf8();
+                header.len = bytes.size();
+                client->SendData(header, ui->le_data->text());
+            }
+            else {
+                QMessageBox mb;
+                mb.setWindowTitle("Ошибка");
+                mb.setText("Не указана строка для передачи на сервер");
+                mb.exec();
+            }
             break;
         }
+
        //Очистить память на сервере
         case 4:{
-            break;
+           header.idData = Messages::CLEAR_DATA;
+           header.len = 0;
+           client->SendRequest(header);
+           break;
         }
        default:
        ui->tb_result->append("Такой запрос не реализован в текущей версии");
        return;
    }
-
-   client->SendRequest(header);
-
 }
 
 /*!
