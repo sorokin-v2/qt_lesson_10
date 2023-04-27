@@ -91,10 +91,6 @@ void TCPclient::ConnectToHost(QHostAddress host, uint16_t port)
     if(socket->state() != QTcpSocket::ConnectedState &&
         socket->state() != QTcpSocket::ConnectingState){
         socket->connectToHost(host, port);
-        emit sig_connectStatus(socket->state());    //Сигнал выбрасывается СРАЗУ НЕЗАВИСИМО ОТ РЕЗУЛЬТАТА ПОДКЛЮЧЕНИЯ!!!
-                                                    //Если запустить клиента при не запущенном сервере, нажать кнопку "Подключиться",
-                                                    //то в клиенте СРАЗУ отображается состояние "Подключено",
-                                                    //затем по после таймаута вывалится сообщение об ошибке подключения к серверу
     }
 }
 /*
@@ -201,7 +197,15 @@ void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
     case SET_DATA:{
         QString string;
         stream >> string;
-        emit sig_SendReplyForSetData(string);
+        if(string.isEmpty()){
+            QMessageBox msg;
+            msg.setIcon(QMessageBox::Warning);
+            msg.setText("Недостаточно места на сервере");
+            msg.exec();
+        }
+        else{
+            emit sig_SendReplyForSetData(string);
+        }
         break;
     }
     case CLEAR_DATA:{
@@ -213,6 +217,6 @@ void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
         default:
             return;
 
-        }
+    }
 
 }
