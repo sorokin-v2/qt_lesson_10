@@ -197,7 +197,7 @@ void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
     case SET_DATA:{
         QString string;
         stream >> string;
-        if(string.isEmpty()){
+        if(header.status == ERR_NO_FREE_SPACE){
             QMessageBox msg;
             msg.setIcon(QMessageBox::Warning);
             msg.setText("Недостаточно места на сервере");
